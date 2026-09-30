@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "SafeCampus",
+    "slug": "safecampus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "safecampus",
+    "ios": {
+      "bundleIdentifier": "com.safecampus.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SafeCampus uses your location to send accurate SOS alerts."
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_FINE_LOCATION"]
+    },
+    "extra": {
+      "apiUrl": "http://localhost:4000/api",
+      "socketUrl": "http://localhost:4000"
+    }
+  }
+}
