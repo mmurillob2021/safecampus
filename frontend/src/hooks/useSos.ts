@@ -4,17 +4,11 @@ import { useAuthStore } from "@/store/authStore";
 import { useSosStore } from "@/store/sosStore";
 import { useLocation } from "@/hooks/useLocation";
 import { createAlertRequest } from "@/services/api/alerts.api";
-import { fetchPersonalContacts } from "@/services/api/contacts.api";
+import { fetchOfficialContacts, fetchPersonalContacts } from "@/services/api/contacts.api";
 import { getSocket } from "@/services/socket";
 import type { EmergencyAlert } from "@/types/alert";
 
 export const CANCEL_SECONDS = 5;
-
-const DEMO_CONTACTS = [
-  { id: "d1", name: "Mamá", phone: "300 123 4567" },
-  { id: "d2", name: "Papá", phone: "310 765 4321" },
-  { id: "d3", name: "Seguridad Campus", phone: "601 555 0100" },
-];
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -43,8 +37,15 @@ export function useSos(silent: boolean) {
 
   async function simulateCalls() {
     const saved = await fetchPersonalContacts().catch(() => []);
-    // Demo fallback so the simulation always runs, even with no saved contacts.
-    const contacts = saved.length > 0 ? saved : DEMO_CONTACTS;
+    // No personal contacts yet: fall back to the official campus contacts (database).
+    const contacts =
+      saved.length > 0
+        ? saved
+        : (await fetchOfficialContacts().catch(() => [])).map((c) => ({ name: c.label, phone: c.phone }));
+    if (contacts.length === 0) {
+      setCallLog(["⚠️ No hay contactos registrados para llamar."]);
+      return;
+    }
     for (const c of contacts) {
       setCallLog((log) => [...log, `📞 Llamando a ${c.name} (${c.phone})…`]);
       await wait(2000);

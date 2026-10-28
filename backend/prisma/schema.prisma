@@ -2,36 +2,21 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// SQLite: the database lives in a local file (see DATABASE_URL in .env).
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  STUDENT
-  SECURITY
-  ADMIN
-}
+// SQLite has no native enums in Prisma 5, so these columns are plain strings.
+// The allowed values live in src/types/domain.ts and are validated with zod:
+//   Role           STUDENT | SECURITY | ADMIN
+//   AlertStatus    ACTIVE | RESOLVED | CANCELLED
+//   IncidentStatus PENDING | REVIEWED | RESOLVED
 
-enum AlertStatus {
-  ACTIVE
-  RESOLVED
-  CANCELLED
-}
-
-enum IncidentCategory {
-  THEFT
-  HARASSMENT
-  SUSPICIOUS_ACTIVITY
-  VANDALISM
-  OTHER
-}
-
-enum IncidentStatus {
-  PENDING
-  REVIEWED
-  RESOLVED
-}
+// ---------------------------------------------------------------------------
+// Transactional tables
+// ---------------------------------------------------------------------------
 
 model User {
   id                String             @id @default(uuid())
@@ -40,69 +25,152 @@ model User {
   studentId         String?
   phone             String?
   passwordHash      String
-  role              Role               @default(STUDENT)
+  role              String             @default("STUDENT")
   avatarUrl         String?
   createdAt         DateTime           @default(now())
   alerts            EmergencyAlert[]
   incidents         Incident[]
   personalContacts  PersonalContact[]
   notificationReads NotificationRead[]
+  accessPasses      AccessPass[]
 }
 
 model EmergencyAlert {
-  id         String      @id @default(uuid())
-  user       User        @relation(fields: [userId], references: [id])
+  id         String    @id @default(uuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String
   latitude   Float
   longitude  Float
-  status     AlertStatus @default(ACTIVE)
-  createdAt  DateTime    @default(now())
+  status     String    @default("ACTIVE")
+  createdAt  DateTime  @default(now())
   resolvedAt DateTime?
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Incident {
-  id          String           @id @default(uuid())
-  user        User             @relation(fields: [userId], references: [id])
-  userId      String
-  category    IncidentCategory
-  description String
-  photoUrl    String?
-  latitude    Float
-  longitude   Float
-  status      IncidentStatus   @default(PENDING)
-  createdAt   DateTime         @default(now())
-}
+  id           String           @id @default(uuid())
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  category     String
+  categoryRef  IncidentCategory @relation(fields: [category], references: [code], onDelete: Restrict)
+  severity     String?
+  severityRef  SeverityLevel?   @relation(fields: [severity], references: [code], onDelete: Restrict)
+  description  String
+  anonymous    Boolean          @default(false)
+  photoUrl     String?
+  latitude     Float
+  longitude    Float
+  status       String           @default("PENDING")
+  createdAt    DateTime         @default(now())
 
-model OfficialContact {
-  id    String @id @default(uuid())
-  label String
-  phone String
-  order Int    @default(0)
+  @@index([userId])
 }
 
 model PersonalContact {
   id     String @id @default(uuid())
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
   name   String
   phone  String
+
+  @@index([userId])
 }
 
+/// Institutional alerts / campus-wide notifications shown on Home and Alerts.
 model Notification {
-  id        String             @id @default(uuid())
-  title     String
-  body      String
-  createdAt DateTime           @default(now())
-  reads     NotificationRead[]
+  id          String             @id @default(uuid())
+  title       String
+  body        String
+  place       String?
+  severity    String?
+  severityRef SeverityLevel?     @relation(fields: [severity], references: [code], onDelete: Restrict)
+  createdAt   DateTime           @default(now())
+  reads       NotificationRead[]
 }
 
 model NotificationRead {
   id             String       @id @default(uuid())
-  notification   Notification @relation(fields: [notificationId], references: [id])
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
   notificationId String
-  user           User         @relation(fields: [userId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
   readAt         DateTime     @default(now())
 
   @@unique([notificationId, userId])
+}
+
+/// Time-limited QR pass to enter the campus. One row per request, so this
+/// table is also the log of every time a user asked for a QR.
+model AccessPass {
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  /// Random secret encoded in the QR; guards verify it at the gate.
+  token       String    @unique
+  zoneName    String
+  zoneDetail  String?
+  requestedAt DateTime  @default(now())
+  /// Request date and time as readable text in the campus timezone
+  /// (setting campus.timezone), e.g. "2026-10-20" and "20:16:05".
+  requestDate String
+  requestTime String
+  expiresAt   DateTime
+  /// Set when the user generates a new pass before this one expired.
+  revokedAt   DateTime?
+  /// Set when security validates the QR at the gate.
+  usedAt      DateTime?
+
+  @@index([userId, expiresAt])
+  @@index([requestDate])
+}
+
+// ---------------------------------------------------------------------------
+// Parameter tables (managed from the config module: /api/config)
+// ---------------------------------------------------------------------------
+
+model OfficialContact {
+  id     String  @id @default(uuid())
+  label  String
+  phone  String
+  order  Int     @default(0)
+  active Boolean @default(true)
+}
+
+model IncidentCategory {
+  code      String     @id
+  label     String
+  order     Int        @default(0)
+  active    Boolean    @default(true)
+  incidents Incident[]
+}
+
+model SeverityLevel {
+  code          String         @id
+  label         String
+  color         String         @default("#667085")
+  order         Int            @default(0)
+  active        Boolean        @default(true)
+  incidents     Incident[]
+  notifications Notification[]
+}
+
+model SafetyPoint {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  latitude    Float
+  longitude   Float
+  order       Int     @default(0)
+  active      Boolean @default(true)
+}
+
+/// Key/value settings (campus name, campus status, map center, ...).
+model AppSetting {
+  key         String   @id
+  value       String
+  label       String
+  description String?
+  updatedAt   DateTime @updatedAt
 }

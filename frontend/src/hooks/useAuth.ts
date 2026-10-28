@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { useConfigStore } from "@/store/configStore";
 import { loginRequest, registerRequest } from "@/services/api/auth.api";
 import { connectSocket, disconnectSocket } from "@/services/socket";
 
@@ -28,6 +29,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     disconnectSocket();
     clearSession();
+    useConfigStore.getState().clear();
   }, [clearSession]);
 
   return { login, register, logout };

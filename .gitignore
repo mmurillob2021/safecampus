@@ -8,3 +8,13 @@ frontend/ios/build/
 frontend/ios/Pods/
 *.log
 .DS_Store
+
+# SQLite database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Firebase service account keys
+firebase-service-account.json
+*-firebase-adminsdk-*.json

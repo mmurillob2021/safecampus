@@ -8,7 +8,8 @@ function required(name: string): string {
 
 export const env = {
   port: Number(process.env.PORT ?? 4000),
-  databaseUrl: required("DATABASE_URL"),
+  // SQLite file, relative to prisma/schema.prisma (e.g. "file:./dev.db").
+  databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
   jwtSecret: required("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   corsOrigin: process.env.CORS_ORIGIN ?? "*",

@@ -3,6 +3,7 @@ import { ApiError } from "@/utils/apiError";
 import { comparePassword, hashPassword } from "@/utils/password";
 import { signAuthToken } from "@/utils/jwt";
 import type { LoginInput, RegisterInput } from "@/modules/auth/auth.schema";
+import type { Role } from "@/types/domain";
 
 export async function registerUser(input: RegisterInput) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
@@ -19,7 +20,7 @@ export async function registerUser(input: RegisterInput) {
     },
   });
 
-  const token = signAuthToken({ userId: user.id, role: user.role });
+  const token = signAuthToken({ userId: user.id, role: user.role as Role });
   return { token, user };
 }
 
@@ -39,6 +40,6 @@ export async function loginUser(input: LoginInput) {
   const valid = await comparePassword(input.password, user.passwordHash);
   if (!valid) throw ApiError.unauthorized("Invalid credentials");
 
-  const token = signAuthToken({ userId: user.id, role: user.role });
+  const token = signAuthToken({ userId: user.id, role: user.role as Role });
   return { token, user };
 }

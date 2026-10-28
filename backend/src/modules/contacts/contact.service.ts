@@ -3,7 +3,7 @@ import { ApiError } from "@/utils/apiError";
 import type { CreatePersonalContactInput } from "@/modules/contacts/contact.schema";
 
 export function listOfficialContacts() {
-  return prisma.officialContact.findMany({ orderBy: { order: "asc" } });
+  return prisma.officialContact.findMany({ where: { active: true }, orderBy: { order: "asc" } });
 }
 
 export function listPersonalContacts(userId: string) {

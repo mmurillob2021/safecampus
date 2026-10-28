@@ -19,8 +19,10 @@ export function SosButton({ onPress, onLongPress, active, label, hint }: SosButt
         delayLongPress={3000}
         style={({ pressed }) => [styles.button, { opacity: active || pressed ? 0.85 : 1 }]}
       >
-        <Text style={styles.label}>{label ?? (active ? "SOS ENVIADO" : "SOS")}</Text>
-        <Text style={styles.hint}>{hint ?? (active ? "La ayuda va en camino" : "Mantén 3 s")}</Text>
+        <Text style={[styles.label, active && styles.labelActive]}>
+          {label ?? (active ? "SOS\nENVIADO" : "SOS")}
+        </Text>
+        <Text style={styles.hint}>{hint ?? (active ? "Ayuda en camino" : "Mantén 3 s")}</Text>
       </Pressable>
     </View>
   );
@@ -47,7 +49,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#A83220",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 16,
   },
-  label: { fontSize: 46, fontWeight: "800", color: "#FFFFFF" },
-  hint: { ...typography.caption, fontSize: 12, color: "#FFFFFF", marginTop: 2 },
+  label: { fontSize: 46, fontWeight: "800", color: "#FFFFFF", textAlign: "center" },
+  labelActive: { fontSize: 28, lineHeight: 34 },
+  hint: { ...typography.caption, fontSize: 12, color: "#FFFFFF", marginTop: 2, textAlign: "center" },
 });

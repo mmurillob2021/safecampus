@@ -1,50 +1,39 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { HomeStackParamList } from "@/navigation/types";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type { AppTabParamList, HomeStackParamList } from "@/navigation/types";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useAuthStore } from "@/store/authStore";
+import { useAppConfig } from "@/hooks/useAppConfig";
+import { fetchNotifications } from "@/services/api/notifications.api";
+import { timeAgo } from "@/utils/time";
 import { colors, spacing, typography } from "@/theme";
+import type { Notification } from "@/types/notification";
 
-type Severity = "ALTA" | "MEDIA" | "BAJA";
-
-// Sample institutional alerts.
-const ALERTS: { id: string; title: string; body: string; place: string; ago: string; severity: Severity }[] = [
-  {
-    id: "a1",
-    title: "Restricción de acceso",
-    body: "El bloque D permanecerá cerrado hoy entre las 2:00 pm y las 6:00 pm por trabajos de mantenimiento.",
-    place: "Bloque D · Parqueadero norte",
-    ago: "Hace 15 min",
-    severity: "ALTA",
-  },
-  {
-    id: "a2",
-    title: "Alerta climática",
-    body: "Se esperan lluvias fuertes a partir de las 3:00 pm. Evita zonas descubiertas en el campus.",
-    place: "Campus general",
-    ago: "Hace 42 min",
-    severity: "MEDIA",
-  },
-  {
-    id: "a3",
-    title: "Actualización de protocolo",
-    body: "El protocolo de evacuación fue actualizado. Revisa los nuevos puntos de encuentro en el mapa.",
-    place: "Todos los bloques",
-    ago: "Hace 2 h",
-    severity: "BAJA",
-  },
-];
-
-const SEVERITY_COLOR: Record<Severity, string> = { ALTA: "#A83220", MEDIA: "#2F55C7", BAJA: "#3B8F5C" };
+const DEFAULT_BADGE_COLOR = "#667085";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "HomeMain">;
 
 export function HomeScreen({ navigation }: Props) {
   const [query, setQuery] = useState("");
-  const [showEmpty, setShowEmpty] = useState(false);
+  const [alerts, setAlerts] = useState<Notification[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(true);
   const user = useAuthStore((s) => s.user);
+  const { setting, settingUpdatedAt, reload: reloadConfig } = useAppConfig();
+
+  // Institutional alerts and campus settings come from the database (SQLite).
+  useFocusEffect(
+    useCallback(() => {
+      reloadConfig();
+      fetchNotifications()
+        .then(setAlerts)
+        .catch(() => setAlerts([]))
+        .finally(() => setLoadingAlerts(false));
+    }, [reloadConfig]),
+  );
   const fullName = user?.fullName ?? "";
   const initials = fullName
     .split(" ")
@@ -59,7 +48,7 @@ export function HomeScreen({ navigation }: Props) {
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={styles.greeting}>Hola, {fullName}</Text>
-            <Text style={styles.campus}>Campus Norte · Ingeniería de Sistemas</Text>
+            <Text style={styles.campus}>{setting("campus.name")}</Text>
           </View>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials || "SC"}</Text>
@@ -68,8 +57,10 @@ export function HomeScreen({ navigation }: Props) {
 
         <View style={styles.statusCard}>
           <Text style={styles.statusLabel}>ESTADO DEL CAMPUS</Text>
-          <Text style={styles.statusTitle}>Operación normal</Text>
-          <Text style={styles.statusSub}>Última verificación hace 3 min</Text>
+          <Text style={styles.statusTitle}>{setting("campus.status", "Sin información")}</Text>
+          <Text style={styles.statusSub}>
+            Última actualización: {timeAgo(settingUpdatedAt("campus.status")).toLowerCase() || "—"}
+          </Text>
         </View>
 
         <TextInput
@@ -91,7 +82,10 @@ export function HomeScreen({ navigation }: Props) {
             <Text style={styles.actionTitle}>Acompañamiento</Text>
             <Text style={styles.actionSub}>Iniciar recorrido</Text>
           </Pressable>
-          <Pressable style={({ pressed }) => [styles.actionCard, pressed && styles.pressed]}>
+          <Pressable
+            style={({ pressed }) => [styles.actionCard, pressed && styles.pressed]}
+            onPress={() => navigation.getParent<BottomTabNavigationProp<AppTabParamList>>()?.navigate("Access")}
+          >
             <Ionicons name="qr-code-outline" size={24} color={colors.textOnLight} />
             <Text style={styles.actionTitle}>Pase de acceso</Text>
             <Text style={styles.actionSub}>Generar código QR</Text>
@@ -100,28 +94,29 @@ export function HomeScreen({ navigation }: Props) {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Alertas institucionales</Text>
-          <Pressable onPress={() => setShowEmpty((v) => !v)}>
-            <Text style={styles.sectionLink}>{showEmpty ? "Ver alertas" : "Estado vacío"}</Text>
-          </Pressable>
         </View>
 
-        {showEmpty ? (
-          <Text style={styles.empty}>No hay alertas institucionales por ahora.</Text>
+        {alerts.length === 0 ? (
+          <Text style={styles.empty}>
+            {loadingAlerts ? "Cargando alertas…" : "No hay alertas institucionales por ahora."}
+          </Text>
         ) : (
-          ALERTS.map((a) => (
+          alerts.map((a) => (
             <View key={a.id} style={styles.alertCard}>
               <View style={styles.alertTop}>
                 <Text style={styles.alertTitle}>{a.title}</Text>
-                <View style={[styles.badge, { backgroundColor: SEVERITY_COLOR[a.severity] }]}>
-                  <Text style={styles.badgeText}>{a.severity}</Text>
-                </View>
+                {a.severityRef ? (
+                  <View style={[styles.badge, { backgroundColor: a.severityRef.color || DEFAULT_BADGE_COLOR }]}>
+                    <Text style={styles.badgeText}>{a.severityRef.label.toUpperCase()}</Text>
+                  </View>
+                ) : null}
               </View>
               <Text style={styles.alertBody} numberOfLines={2}>
                 {a.body}
               </Text>
               <View style={styles.alertMeta}>
-                <Text style={styles.metaText}>{a.place}</Text>
-                <Text style={styles.metaText}>{a.ago}</Text>
+                <Text style={styles.metaText}>{a.place ?? ""}</Text>
+                <Text style={styles.metaText}>{timeAgo(a.createdAt)}</Text>
               </View>
             </View>
           ))
@@ -173,7 +168,6 @@ const styles = StyleSheet.create({
   actionSub: { ...typography.caption, color: colors.textOnLightMuted, marginTop: 2 },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.md },
   sectionTitle: { ...typography.h3, color: colors.textOnLight },
-  sectionLink: { ...typography.caption, color: colors.textOnLight },
   empty: { ...typography.body, color: colors.textOnLightMuted, textAlign: "center", marginTop: spacing.lg },
   alertCard: { ...card, padding: spacing.md, marginBottom: spacing.md },
   alertTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

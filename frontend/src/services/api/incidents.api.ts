@@ -3,7 +3,9 @@ import type { Incident, IncidentCategory } from "@/types/incident";
 
 export interface CreateIncidentInput {
   category: IncidentCategory;
+  severity?: string;
   description: string;
+  anonymous?: boolean;
   photoUrl?: string;
   latitude: number;
   longitude: number;

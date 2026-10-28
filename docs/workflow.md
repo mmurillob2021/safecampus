@@ -12,7 +12,7 @@ exact tokens/screens and reconcile `theme/colors.ts` + spacing.
 
 ## Repositories
 - `frontend/` — React Native (Expo) + TypeScript client app.
-- `backend/` — Node.js + Express + TypeScript + Prisma (PostgreSQL) API,
+- `backend/` — Node.js + Express + TypeScript + Prisma (SQLite) API,
   with a Socket.IO channel for real-time alerts/notifications.
 
 Both are independent projects (separate `package.json`), talking over a
@@ -44,6 +44,6 @@ value (DRY, single source of pixel truth once real tokens land).
 
 ## Running locally
 See `backend/README` env vars (`.env.example`) and
-`frontend/package.json` scripts. Backend needs a PostgreSQL instance and
+`frontend/package.json` scripts. Backend uses a local SQLite file (`backend/prisma/dev.db`), created by
 `npx prisma migrate dev`. Frontend needs `EXPO_PUBLIC_API_URL` pointing
 at the backend.

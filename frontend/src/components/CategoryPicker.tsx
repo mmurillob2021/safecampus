@@ -1,29 +1,24 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing, typography } from "@/theme";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import type { IncidentCategory } from "@/types/incident";
-
-const CATEGORIES: { value: IncidentCategory; label: string }[] = [
-  { value: "THEFT", label: "Robo" },
-  { value: "HARASSMENT", label: "Acoso" },
-  { value: "SUSPICIOUS_ACTIVITY", label: "Actividad sospechosa" },
-  { value: "VANDALISM", label: "Vandalismo" },
-  { value: "OTHER", label: "Otro" },
-];
 
 interface CategoryPickerProps {
   value: IncidentCategory;
   onChange: (value: IncidentCategory) => void;
 }
 
+/** Chips for the active incident categories (parameter table in the config module). */
 export function CategoryPicker({ value, onChange }: CategoryPickerProps) {
+  const { incidentCategories } = useAppConfig();
   return (
     <View style={styles.container}>
-      {CATEGORIES.map((category) => {
-        const selected = category.value === value;
+      {incidentCategories.map((category) => {
+        const selected = category.code === value;
         return (
           <Pressable
-            key={category.value}
-            onPress={() => onChange(category.value)}
+            key={category.code}
+            onPress={() => onChange(category.code)}
             style={[styles.chip, selected && styles.chipSelected]}
           >
             <Text style={[styles.label, selected && styles.labelSelected]}>{category.label}</Text>

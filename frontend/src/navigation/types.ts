@@ -13,6 +13,7 @@ export type AppTabParamList = {
   Home: undefined;
   Sos: undefined;
   Incidents: undefined;
+  Access: undefined;
   Map: undefined;
   Contacts: undefined;
   Notifications: undefined;
@@ -22,4 +23,14 @@ export type AppTabParamList = {
 export type IncidentsStackParamList = {
   IncidentList: undefined;
   ReportIncident: undefined;
+};
+
+export type ProfileStackParamList = {
+  ProfileMain: undefined;
+  ConfigTables: undefined;
+  ConfigTable: { table: import("@/types/config").ConfigTable };
+  ConfigRowForm: {
+    table: import("@/types/config").ConfigTable;
+    row?: import("@/types/config").ConfigRow;
+  };
 };

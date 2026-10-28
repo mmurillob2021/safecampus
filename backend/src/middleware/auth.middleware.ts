@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/domain";
 import { ApiError } from "@/utils/apiError";
 import { verifyAuthToken } from "@/utils/jwt";
 

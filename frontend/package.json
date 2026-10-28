@@ -19,6 +19,7 @@
     "expo-image-picker": "~15.0.7",
     "expo-location": "~17.0.1",
     "expo-status-bar": "~1.12.1",
+    "qrcode": "^1.5.4",
     "react": "18.2.0",
     "react-native": "0.74.5",
     "react-native-gesture-handler": "~2.16.1",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "~18.2.79",
     "babel-plugin-module-resolver": "^5.0.2",
     "typescript": "^5.5.4"

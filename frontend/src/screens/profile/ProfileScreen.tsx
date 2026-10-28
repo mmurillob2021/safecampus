@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, Text } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { ProfileStackParamList } from "@/navigation/types";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/TextField";
@@ -9,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { updateMeRequest } from "@/services/api/users.api";
 import { colors, spacing, typography } from "@/theme";
 
-export function ProfileScreen() {
+type Props = NativeStackScreenProps<ProfileStackParamList, "ProfileMain">;
+
+export function ProfileScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const { logout } = useAuth();
@@ -36,6 +40,14 @@ export function ProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
         <Button label="Guardar cambios" onPress={handleSave} loading={saving} />
       </Card>
+      {user?.role === "ADMIN" ? (
+        <Button
+          label="Configuración"
+          onPress={() => navigation.navigate("ConfigTables")}
+          variant="secondary"
+          style={styles.logout}
+        />
+      ) : null}
       <Button label="Cerrar sesión" onPress={logout} variant="danger" style={styles.logout} />
     </ScreenContainer>
   );

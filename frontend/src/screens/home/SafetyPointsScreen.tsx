@@ -2,7 +2,7 @@ import { FlatList, Pressable, StyleSheet, Text } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { HomeStackParamList } from "@/navigation/types";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { SAFETY_POINTS } from "@/data/safetyPoints";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import { colors, spacing, typography } from "@/theme";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "SafetyPoints">;
@@ -10,14 +10,15 @@ type Props = NativeStackScreenProps<HomeStackParamList, "SafetyPoints">;
 export function SafetyPointsScreen({ route, navigation }: Props) {
   const { query } = route.params;
   const term = query.trim().toLowerCase();
-  const results = SAFETY_POINTS.filter((p) =>
+  const { safetyPoints, loading } = useAppConfig();
+  const results = safetyPoints.filter((p) =>
     `${p.title} ${p.description}`.toLowerCase().includes(term),
   );
 
   return (
     <ScreenContainer>
       <Text style={styles.summary}>
-        {results.length} resultado(s){term ? ` para "${query}"` : ""}
+        {loading ? "Cargando…" : `${results.length} resultado(s)${term ? ` para "${query}"` : ""}`}
       </Text>
       <FlatList
         data={results}

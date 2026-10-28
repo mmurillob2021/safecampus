@@ -41,6 +41,11 @@ export function NotificationsScreen() {
           <View style={styles.item}>
             <Text style={styles.itemTitle}>{item.title}</Text>
             <Text style={styles.itemBody}>{item.body}</Text>
+            {item.severityRef || item.place ? (
+              <Text style={[styles.itemDate, item.severityRef && { color: item.severityRef.color }]}>
+                {[item.severityRef?.label, item.place].filter(Boolean).join(" · ")}
+              </Text>
+            ) : null}
             <Text style={styles.itemDate}>{new Date(item.createdAt).toLocaleString()}</Text>
           </View>
         )}

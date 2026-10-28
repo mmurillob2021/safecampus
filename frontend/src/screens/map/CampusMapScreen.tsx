@@ -1,36 +1,40 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { useFocusEffect } from "@react-navigation/native";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { fetchMyIncidents } from "@/services/api/incidents.api";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import { colors, spacing, typography } from "@/theme";
-import { SAFETY_POINTS } from "@/data/safetyPoints";
 import type { Incident } from "@/types/incident";
-import type { Coordinates } from "@/hooks/useLocation";
 
-// Sample map centered on Bogotá.
-const BOGOTA: Coordinates = { latitude: 4.6382, longitude: -74.0840 };
+// Used only until the map.center.* settings load from the API.
+const FALLBACK_CENTER = { latitude: 4.6382, longitude: -74.084 };
 
 export function CampusMapScreen() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const region = BOGOTA;
+  const { config, safetyPoints, setting, numberSetting } = useAppConfig();
 
-  useEffect(() => {
-    fetchMyIncidents().then(setIncidents).catch(() => setIncidents([]));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyIncidents().then(setIncidents).catch(() => setIncidents([]));
+    }, []),
+  );
+
+  const center = {
+    latitude: numberSetting("map.center.latitude", FALLBACK_CENTER.latitude),
+    longitude: numberSetting("map.center.longitude", FALLBACK_CENTER.longitude),
+  };
 
   return (
     <ScreenContainer style={styles.container}>
       <MapView
+        // Remount once the configured center arrives so initialRegion applies.
+        key={config ? `${center.latitude},${center.longitude}` : "fallback"}
         style={styles.map}
-        initialRegion={{
-          latitude: region.latitude,
-          longitude: region.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
+        initialRegion={{ ...center, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
       >
-        {SAFETY_POINTS.map((point) => (
+        {safetyPoints.map((point) => (
           <Marker
             key={point.id}
             coordinate={{ latitude: point.latitude, longitude: point.longitude }}
@@ -43,13 +47,13 @@ export function CampusMapScreen() {
           <Marker
             key={incident.id}
             coordinate={{ latitude: incident.latitude, longitude: incident.longitude }}
-            title={incident.category.replace(/_/g, " ").toLowerCase()}
+            title={incident.categoryRef?.label ?? incident.category}
             description={incident.status}
           />
         ))}
       </MapView>
       <View style={styles.legend}>
-        <Text style={styles.legendText}>Mapa de ejemplo de Bogotá: puntos de seguridad e incidentes reportados.</Text>
+        <Text style={styles.legendText}>{setting("map.legend")}</Text>
       </View>
     </ScreenContainer>
   );

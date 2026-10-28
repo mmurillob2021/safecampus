@@ -7,25 +7,11 @@ import type { IncidentsStackParamList } from "@/navigation/types";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { AlertBanner } from "@/components/AlertBanner";
 import { useLocation } from "@/hooks/useLocation";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import { createIncidentRequest } from "@/services/api/incidents.api";
 import { colors, radius, spacing, typography } from "@/theme";
-import type { IncidentCategory } from "@/types/incident";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "ReportIncident">;
-
-// The API only knows a few categories; the richer UI options map onto them.
-const CATEGORIES: { label: string; api: IncidentCategory }[] = [
-  { label: "Acoso", api: "HARASSMENT" },
-  { label: "Hurto", api: "THEFT" },
-  { label: "Accidente", api: "OTHER" },
-  { label: "Emergencia médica", api: "OTHER" },
-  { label: "Incendio", api: "OTHER" },
-  { label: "Infraestructura", api: "VANDALISM" },
-  { label: "Sustancias", api: "SUSPICIOUS_ACTIVITY" },
-  { label: "Otro", api: "OTHER" },
-];
-
-const SEVERITIES = ["Baja", "Media", "Alta", "Crítica"];
 
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
@@ -37,6 +23,8 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
 
 export function ReportIncidentScreen({ navigation }: Props) {
   const { getCurrentCoordinates } = useLocation();
+  // Categories and severities are parameter tables (config module → SQLite).
+  const { incidentCategories, severityLevels, loading: loadingConfig } = useAppConfig();
   const [category, setCategory] = useState<string | null>(null);
   const [severity, setSeverity] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -58,11 +46,11 @@ export function ReportIncidentScreen({ navigation }: Props) {
     setStatus("idle");
     try {
       const coords = await getCurrentCoordinates();
-      const api = CATEGORIES.find((c) => c.label === category)!.api;
-      const tags = `[${category} · ${severity}${anonymous ? " · Anónimo" : ""}]`;
       await createIncidentRequest({
-        category: api,
-        description: `${tags} ${description}`.trim(),
+        category: category!,
+        severity: severity!,
+        description: description.trim(),
+        anonymous,
         photoUrl,
         ...coords,
       });
@@ -89,15 +77,16 @@ export function ReportIncidentScreen({ navigation }: Props) {
 
         <Text style={styles.sectionLabel}>CATEGORÍA</Text>
         <View style={styles.chips}>
-          {CATEGORIES.map((c) => (
-            <Chip key={c.label} label={c.label} selected={category === c.label} onPress={() => setCategory(c.label)} />
+          {incidentCategories.map((c) => (
+            <Chip key={c.code} label={c.label} selected={category === c.code} onPress={() => setCategory(c.code)} />
           ))}
+          {loadingConfig && incidentCategories.length === 0 ? <Text style={styles.hint}>Cargando…</Text> : null}
         </View>
 
         <Text style={styles.sectionLabel}>SEVERIDAD</Text>
         <View style={styles.chips}>
-          {SEVERITIES.map((s) => (
-            <Chip key={s} label={s} selected={severity === s} onPress={() => setSeverity(s)} />
+          {severityLevels.map((s) => (
+            <Chip key={s.code} label={s.label} selected={severity === s.code} onPress={() => setSeverity(s.code)} />
           ))}
         </View>
 

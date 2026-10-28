@@ -5,9 +5,10 @@ import { HomeNavigator } from "@/navigation/HomeNavigator";
 import { SosScreen } from "@/screens/sos/SosScreen";
 import { IncidentsNavigator } from "@/navigation/IncidentsNavigator";
 import { CampusMapScreen } from "@/screens/map/CampusMapScreen";
+import { AccessPassScreen } from "@/screens/access/AccessPassScreen";
 import { EmergencyContactsScreen } from "@/screens/contacts/EmergencyContactsScreen";
 import { NotificationsScreen } from "@/screens/notifications/NotificationsScreen";
-import { ProfileScreen } from "@/screens/profile/ProfileScreen";
+import { ProfileNavigator } from "@/navigation/ProfileNavigator";
 import { colors } from "@/theme";
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
@@ -18,6 +19,7 @@ const TAB_ICONS: Record<keyof AppTabParamList, { active: IconName; inactive: Ico
   Home: { active: "home", inactive: "home-outline", label: "Inicio" },
   Sos: { active: "shield", inactive: "shield-outline", label: "SOS" },
   Incidents: { active: "alert-circle", inactive: "alert-circle-outline", label: "Incidentes" },
+  Access: { active: "qr-code", inactive: "qr-code-outline", label: "Acceso" },
   Map: { active: "map", inactive: "map-outline", label: "Mapa" },
   Contacts: { active: "call", inactive: "call-outline", label: "Contactos" },
   Notifications: { active: "notifications", inactive: "notifications-outline", label: "Alertas" },
@@ -51,10 +53,11 @@ export function AppTabNavigator() {
       <Tab.Screen name="Home" component={HomeNavigator} />
       <Tab.Screen name="Sos" component={SosScreen} />
       <Tab.Screen name="Incidents" component={IncidentsNavigator} />
+      <Tab.Screen name="Access" component={AccessPassScreen} />
       <Tab.Screen name="Map" component={CampusMapScreen} />
       <Tab.Screen name="Contacts" component={EmergencyContactsScreen} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
   );
 }
