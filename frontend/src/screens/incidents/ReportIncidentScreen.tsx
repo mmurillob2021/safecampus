@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { isAxiosError } from "axios";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { IncidentsStackParamList } from "@/navigation/types";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -12,6 +13,14 @@ import { createIncidentRequest } from "@/services/api/incidents.api";
 import { colors, radius, spacing, typography } from "@/theme";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "ReportIncident">;
+
+// Used only until the map.center.* settings load from the API.
+const FALLBACK_CENTER = { latitude: 4.6382, longitude: -74.084 };
+
+function errorMessage(err: unknown): string {
+  if (isAxiosError(err) && typeof err.response?.data?.message === "string") return err.response.data.message;
+  return "No se pudo enviar tu reporte.";
+}
 
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
@@ -24,13 +33,14 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
 export function ReportIncidentScreen({ navigation }: Props) {
   const { getCurrentCoordinates } = useLocation();
   // Categories and severities are parameter tables (config module → SQLite).
-  const { incidentCategories, severityLevels, loading: loadingConfig } = useAppConfig();
+  const { incidentCategories, severityLevels, loading: loadingConfig, numberSetting } = useAppConfig();
   const [category, setCategory] = useState<string | null>(null);
   const [severity, setSeverity] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const canSubmit = !!category && !!severity && !loading;
@@ -45,7 +55,12 @@ export function ReportIncidentScreen({ navigation }: Props) {
     setLoading(true);
     setStatus("idle");
     try {
-      const coords = await getCurrentCoordinates();
+      // Without a device location (permission denied, or none set on the simulator)
+      // the report is still saved, placed at the campus center.
+      const coords = await getCurrentCoordinates().catch(() => ({
+        latitude: numberSetting("map.center.latitude", FALLBACK_CENTER.latitude),
+        longitude: numberSetting("map.center.longitude", FALLBACK_CENTER.longitude),
+      }));
       await createIncidentRequest({
         category: category!,
         severity: severity!,
@@ -61,7 +76,8 @@ export function ReportIncidentScreen({ navigation }: Props) {
       setAnonymous(false);
       setPhotoUrl(undefined);
       setTimeout(() => navigation.navigate("IncidentList"), 800);
-    } catch {
+    } catch (err) {
+      setError(errorMessage(err));
       setStatus("error");
     } finally {
       setLoading(false);
@@ -73,7 +89,7 @@ export function ReportIncidentScreen({ navigation }: Props) {
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Reportar incidente</Text>
         {status === "sent" && <AlertBanner tone="success" message="Reporte enviado." />}
-        {status === "error" && <AlertBanner message="No se pudo enviar tu reporte." />}
+        {status === "error" && <AlertBanner message={error} />}
 
         <Text style={styles.sectionLabel}>CATEGORÍA</Text>
         <View style={styles.chips}>
