@@ -13,4 +13,6 @@ export const env = {
   jwtSecret: required("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   corsOrigin: process.env.CORS_ORIGIN ?? "*",
+  // Path to a Firebase service account JSON; enables the live Firestore mirror.
+  firebaseServiceAccount: process.env.FIREBASE_SERVICE_ACCOUNT,
 };

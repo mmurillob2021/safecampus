@@ -26,6 +26,15 @@ implements, and `../docs/workflow.md` for architecture notes.
 - SQLite has no enums in Prisma 5, so `role`, `status` and similar columns
   are strings. Allowed values live in `src/types/domain.ts`.
 
+## Firestore copy
+SQLite is the source of truth; Firestore holds a copy.
+- With `FIREBASE_SERVICE_ACCOUNT` set, every incident create or status
+  change is written to the `Incident` collection (`src/config/firestore.ts`).
+  A Firestore failure is logged and never fails the request.
+- `npm run firestore:sync` copies every table (without password hashes).
+  Documents use the row's primary key as id, so re-running it overwrites
+  instead of duplicating.
+
 ## Config module (`/api/config`)
 Parameter tables the app reads instead of hard-coded arrays:
 
